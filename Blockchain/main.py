@@ -1,22 +1,21 @@
-#Interacting with the Dexter's blockchain with multiple nodes using HTTP requests
+# Interacting with the Dexter's blockchain with multiple nodes using HTTP requests
 
 from flask import Flask, jsonify, request
 
 from blockchain import Blockchain
 
-#Initialise our node with identifier and instantiate the Blockchain class
+# Initialise our node with identifier and instantiate the Blockchain class
 app = Flask(__name__)
 blockchain = Blockchain()
 
-#API endpoint to mine a block, its an HTTP GET request
+
+# API endpoint to mine a block, its an HTTP GET request
 @app.route('/mine', methods=['GET'])
-
-#Method to mine a block 
+# Method to mine a block
 def mine():
-
-    #To ensure that only delegates elected by voting can mine a new block
-    current_port = "localhost:"+ str(port)
-    if(current_port in blockchain.delegates):
+    # To ensure that only delegates elected by voting can mine a new block
+    current_port = "localhost:" + str(port)
+    if current_port in blockchain.delegates:
 
         # To ensure that a new block is mined only if there are atleast 2 transactions
         if len(blockchain.unverified_transactions) >= 2:
@@ -35,26 +34,26 @@ def mine():
 
         else:
             response = {
-                'message' : 'Not enough transactions to mine a new block and add to chain!'
+                'message': 'Not enough transactions to mine a new block and add to chain!'
             }
             print(len(blockchain.unverified_transactions))
-            return jsonify(response),400
+            return jsonify(response), 400
     else:
         response = {
             'message': 'You are not authorised to mine block! Only delegates can mine.'
         }
-        return jsonify(response),400
+        return jsonify(response), 400
 
 
-#Endpoint for a new transaction
+# Endpoint for a new transaction
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
     values = request.get_json()
 
-    required = ['Customer name','Item name', 'Total billing amount']
+    required = ['Customer name', 'Item name', 'Total billing amount']
     if not all(k in values for k in required):
         return 'Missing values! Please enter customer name, item name and billing amount.', 400
-    
+
     index = blockchain.new_transaction(values['Customer name'], values['Item name'], values['Total billing amount'])
 
     response = {
@@ -63,7 +62,7 @@ def new_transaction():
     return jsonify(response), 201
 
 
-#Endpoint for viewing the blockchain
+# Endpoint for viewing the blockchain
 @app.route('/chain', methods=['GET'])
 def full_chain():
     response = {
@@ -73,17 +72,18 @@ def full_chain():
     return jsonify(response), 200
 
 
-#Endpoint for adding HTTP address of new nodes along with their stakes in the network.
+# Endpoint for adding HTTP address of new nodes along with their stakes in the network.
 @app.route('/nodes/add', methods=['POST'])
 def add_nodes():
     values = request.get_json()
-    required = ['nodes','stake']
-    
+    print(values)
+    required = ['nodes', 'stake']
+
     if not all(k in values for k in required):
-        return 'Error',400
+        return 'Error', 400
 
     blockchain.add_node(values['nodes'], values['stake'])
-    
+
     response = {
         'message': 'New nodes are added!',
         'total_nodes': list(blockchain.nodes)
@@ -92,14 +92,13 @@ def add_nodes():
     return jsonify(response), 201
 
 
-#Endpoint to start the voting process
-@app.route('/voting',methods=['GET'])
+# Endpoint to start the voting process
+@app.route('/voting', methods=['GET'])
 def voting():
-
-    if(port == 5000):
+    if port == 5000:
         show_votes = blockchain.add_vote()
 
-        response ={
+        response = {
             'message': 'The voting results are as follows:',
             'nodes': blockchain.voteNodespool
             }
@@ -107,37 +106,37 @@ def voting():
         return jsonify(response),200
         
     else:
-        response={
+        response = {
             'message': 'You are not authorized to conduct the election process!'
         }
-        return jsonify(response),400
+        return jsonify(response), 400
 
 
-#Endpoint to view the list of all three elected delegate nodes
-@app.route('/delegates/show',methods=['GET'])
+# Endpoint to view the list of all three elected delegate nodes
+@app.route('/delegates/show', methods=['GET'])
 def delegates():
     show_delegates = blockchain.selection()
 
-    response={
+    response = {
         'message': 'The 3 delegate nodes selected for block mining are:',
         'node_delegates': blockchain.delegates
     }
-    return jsonify(response),200
+    return jsonify(response), 200
 
 
-#Endpoint to synchronise the list of elected delegates with all other nodes in the network 
-@app.route('/delegates/sync',methods=['GET'])
+# Endpoint to synchronise the list of elected delegates with all other nodes in the network
+@app.route('/delegates/sync', methods=['GET'])
 def sync_delegates():
     sync_delegates = blockchain.sync()
 
-    response ={
+    response = {
         'message': 'The delegate nodes are:',
-        'node_delegates':blockchain.delegates
+        'node_delegates': blockchain.delegates
     }
-    return jsonify(response),200
+    return jsonify(response), 200
 
 
-#Endpoint to resolve and replace current chain with the longest validated one,achieving consensus
+# Endpoint to resolve and replace current chain with the longest validated one,achieving consensus
 @app.route('/chain/resolve', methods=['GET'])
 def consensus():
     replaced = blockchain.resolve_chain()
@@ -155,7 +154,6 @@ def consensus():
     return jsonify(response), 200
 
 
-
 if __name__ == '__main__':
     from argparse import ArgumentParser
 
@@ -163,4 +161,4 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', default=5000, type=int, help='Listening on port')
     args = parser.parse_args()
     port = args.port
-    app.run(host = '0.0.0.0', port = port)
+    app.run(host='0.0.0.0', port=port)
